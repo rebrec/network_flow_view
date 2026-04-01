@@ -1,0 +1,56 @@
+{
+  "search_request": {
+    "url": "POST /api/v1/flows/search",
+    "description": "Recherche de flux avec filtres NVQL",
+    "payload": {
+      "query_string": "src.zone:PROD and not tag:noisy and dst.port:443",
+      "limit": 100,
+      "offset": 0,
+      "sort": "last_seen",
+      "direction": "desc"
+    },
+    "response_example": {
+      "total": 1,
+      "data": [
+        {
+          "id": 123,
+          "ip_src": "10.1.1.10",
+          "src_alias": "db-prod-01",
+          "ip_dst": "10.2.1.50",
+          "dst_alias": "web-server-01",
+          "port_dst": 443,
+          "protocol": "TCP",
+          "first_seen": "2023-10-27T10:00:00Z",
+          "last_seen": "2023-10-27T14:30:00Z",
+          "total_count": 5420,
+          "src_zone": "ZONE_PROD",
+          "dst_zone": "ZONE_WEB"
+        }
+      ]
+    }
+  },
+  "graph_response": {
+    "url": "GET /api/v1/graphs/dependency?group_by=host&filter=zone:PROD",
+    "description": "Réponse formatée pour Cytoscape.js",
+    "response_example": {
+      "elements": {
+        "nodes": [
+          { "data": { "id": "10.1.1.10", "label": "db-prod-01", "type": "host", "zone": "PROD" } },
+          { "data": { "id": "10.2.1.50", "label": "web-server-01", "type": "host", "zone": "WEB" } }
+        ],
+        "edges": [
+          {
+            "data": {
+              "id": "e1",
+              "source": "10.1.1.10",
+              "target": "10.2.1.50",
+              "label": "TCP/443",
+              "weight": 5420,
+              "last_seen": "2023-10-27T14:30:00Z"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

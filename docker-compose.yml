@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: netvis-db
+    environment:
+      POSTGRES_USER: netvis
+      POSTGRES_PASSWORD: netvis_password
+      POSTGRES_DB: netvis
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: netvis-redis
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ./backend
+    container_name: netvis-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://netvis:netvis_password@db:5432/netvis
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  worker-flow:
+    build: ./backend
+    container_name: netvis-worker-flow
+    command: python workers/flow_worker.py
+    environment:
+      DATABASE_URL: postgresql://netvis:netvis_password@db:5432/netvis
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:

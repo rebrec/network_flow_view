@@ -1,0 +1,36 @@
+graph TD
+    subgraph Network_Devices
+        Nexus[Cisco Nexus 9000]
+        F5[F5 AFM/LTM]
+    end
+
+    subgraph Ingestion_Layer
+        Collector[Collector Service - UDP 9995/IPFIX]
+        Redis[(Redis Buffer)]
+    end
+
+    subgraph Processing_Layer
+        WorkerFlow[Worker Consolidation]
+        WorkerDNS[Worker DNS Resolver]
+        WorkerHousekeeping[Worker Cleanup/Refresh]
+    end
+
+    subgraph Storage_Layer
+        Postgres[(PostgreSQL 15)]
+    end
+
+    subgraph Application_Layer
+        FastAPI[Backend API - FastAPI]
+        Frontend[Frontend UI - React/Vue]
+    end
+
+    %% Flows
+    Nexus -- "NetFlow v9/IPFIX" --> Collector
+    F5 -- "HSL / IPFIX" --> Collector
+    Collector -- "Enqueue raw flow" --> Redis
+    WorkerFlow -- "Dequeue & Process" --> Redis
+    WorkerFlow -- "UPSERT consolidated_flows" --> Postgres
+    WorkerDNS -- "Resolve IP to Hostname" --> Postgres
+    FastAPI -- "Query Data" --> Postgres
+    Frontend -- "REST / JSON" --> FastAPI
+    WorkerHousekeeping -- "Cleanup & Refresh MVs" --> Postgres
