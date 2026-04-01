@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NetVis Explorer - NVQL Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 p-8 font-sans">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+            <h1 class="text-3xl font-bold text-blue-400">NetVis <span class="text-gray-400 text-lg">Explorer V1</span></h1>
+            <nav class="space-x-4">
+                <a href="#" class="text-blue-400 font-semibold border-b-2 border-blue-400">Explorer</a>
+                <a href="#" class="hover:text-blue-300">Graph View</a>
+                <a href="#" class="hover:text-blue-300">Settings</a>
+            </nav>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl mb-8">
+            <div class="flex space-x-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">NVQL Query</label>
+                    <input type="text" value="src:10.1.1.10 and port:443" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-blue-300 font-mono text-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="flex items-end">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded font-bold transition">Search</button>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-500 italic">
+                Try: src.zone:PROD and not proto:UDP
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden shadow-2xl border border-gray-700">
+            <div class="p-4 bg-gray-700 flex justify-between items-center">
+                <h2 class="font-bold">Consolidated Flows (12 results)</h2>
+                <button class="text-xs bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded">Export CSV</button>
+            </div>
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-900 text-gray-400 uppercase text-xs">
+                    <tr>
+                        <th class="p-4">IP Source</th>
+                        <th class="p-4">IP Destination</th>
+                        <th class="p-4 text-center">Port</th>
+                        <th class="p-4">Proto</th>
+                        <th class="p-4">First Seen</th>
+                        <th class="p-4">Last Seen</th>
+                        <th class="p-4 text-right">Count</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-700">
+                    <tr class="hover:bg-gray-750 transition">
+                        <td class="p-4 font-mono text-blue-300">10.1.1.10</td>
+                        <td class="p-4 font-mono text-gray-300">172.16.50.100</td>
+                        <td class="p-4 text-center text-green-400 font-bold">443</td>
+                        <td class="p-4">TCP</td>
+                        <td class="p-4 text-gray-500">2023-10-27 10:00</td>
+                        <td class="p-4 text-gray-400">2023-10-27 14:30</td>
+                        <td class="p-4 text-right font-bold text-yellow-500">5,420</td>
+                    </tr>
+                    <tr class="hover:bg-gray-750 transition">
+                        <td class="p-4 font-mono text-blue-300">10.1.1.10</td>
+                        <td class="p-4 font-mono text-gray-300">8.8.8.8</td>
+                        <td class="p-4 text-center text-green-400 font-bold">53</td>
+                        <td class="p-4">UDP</td>
+                        <td class="p-4 text-gray-500">2023-10-27 09:12</td>
+                        <td class="p-4 text-gray-400">2023-10-27 15:45</td>
+                        <td class="p-4 text-right font-bold text-yellow-500">12,105</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

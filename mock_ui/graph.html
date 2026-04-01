@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NetVis Graph - Topology View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <style>
+        #cy {
+            width: 100%;
+            height: 600px;
+            background: #111827;
+            border-radius: 12px;
+            border: 1px solid #374151;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 p-8 font-sans">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-blue-400">NetVis <span class="text-gray-400 text-lg">Topology Graph</span></h1>
+            <div class="flex space-x-2">
+                <button class="bg-gray-700 px-4 py-2 rounded text-xs">Host</button>
+                <button class="bg-blue-600 px-4 py-2 rounded text-xs font-bold shadow-lg">Subnet</button>
+                <button class="bg-gray-700 px-4 py-2 rounded text-xs">Zone</button>
+            </div>
+        </header>
+
+        <div id="cy"></div>
+
+        <div class="mt-4 flex justify-between items-center text-xs text-gray-500">
+            <p>Nodes: 8 | Edges: 14 | Showing last 24h activity</p>
+            <button class="bg-gray-700 hover:bg-gray-600 px-4 py-1 rounded">Export Graph PNG</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var cy = cytoscape({
+                container: document.getElementById('cy'),
+                elements: [
+                    { data: { id: 'a', label: '10.1.1.0/24 (PROD)', zone: 'PROD' } },
+                    { data: { id: 'b', label: '172.16.50.0/24 (WEB)', zone: 'WEB' } },
+                    { data: { id: 'c', label: 'INTERNET', zone: 'EXT' } },
+                    { data: { id: 'd', label: '192.168.10.0/24 (DMZ)', zone: 'DMZ' } },
+                    { data: { source: 'a', target: 'b', weight: 5 } },
+                    { data: { source: 'b', target: 'c', weight: 8 } },
+                    { data: { source: 'c', target: 'd', weight: 2 } },
+                    { data: { source: 'a', target: 'd', weight: 3 } }
+                ],
+                style: [
+                    {
+                        selector: 'node',
+                        style: {
+                            'background-color': '#3b82f6',
+                            'label': 'data(label)',
+                            'color': '#ffffff',
+                            'font-size': '12px',
+                            'text-valign': 'center',
+                            'text-halign': 'center',
+                            'width': '120px',
+                            'height': '120px',
+                            'shape': 'round-rectangle',
+                            'text-wrap': 'wrap',
+                            'text-max-width': '100px'
+                        }
+                    },
+                    {
+                        selector: 'edge',
+                        style: {
+                            'width': 'mapData(weight, 0, 10, 2, 8)',
+                            'line-color': '#4b5563',
+                            'target-arrow-color': '#4b5563',
+                            'target-arrow-shape': 'triangle',
+                            'curve-style': 'bezier',
+                            'opacity': 0.8
+                        }
+                    }
+                ],
+                layout: {
+                    name: 'circle',
+                    padding: 30
+                }
+            });
+        });
+    </script>
+</body>
+</html>
