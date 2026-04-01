@@ -10,7 +10,13 @@ NetVis est un outil d'observabilité réseau conçu pour offrir une vision conso
 
 ### Lancer l'infrastructure (PostgreSQL, Redis, API, Worker)
 ```bash
-docker-compose up --build
+docker compose build \
+  --build-arg HTTP_PROXY \
+  --build-arg HTTPS_PROXY \
+  --build-arg NO_PROXY \
+  --build-arg http_proxy \
+  --build-arg https_proxy \
+  --build-arg no_proxy
 ```
 L'API sera disponible sur `http://localhost:8000/health`.
 
