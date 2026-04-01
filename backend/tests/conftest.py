@@ -14,6 +14,8 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def db_engine():
+    # En environnement de test/sandbox, on tente de se connecter.
+    # On privilégie l'IP de l'host si on est en local.
     try:
         engine = create_async_engine(settings.DATABASE_URL, echo=False)
         async with engine.connect() as conn:
@@ -21,7 +23,8 @@ async def db_engine():
         yield engine
         await engine.dispose()
     except Exception:
-        pytest.skip("PostgreSQL non disponible pour les tests d'intégration.")
+        # Fallback pour les tests locaux sans Postgres : on skip les tests d'intégration DB
+        pytest.skip("PostgreSQL non disponible pour les tests d'intégration. Vérifiez votre config.")
 
 @pytest.fixture
 async def db_session(db_engine):
@@ -30,14 +33,12 @@ async def db_session(db_engine):
     )
     async with async_session() as session:
         # Override de la dépendance get_db pour FastAPI
-        # On injecte la session de test directement
         async def override_get_db():
             yield session
         app.dependency_overrides[app.get_db] = override_get_db
 
         yield session
         await session.rollback()
-        # Clean overrides après chaque test
         app.dependency_overrides.clear()
 
 @pytest.fixture

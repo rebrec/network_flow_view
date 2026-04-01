@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime, BigInteger, UniqueConstraint
+from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -7,8 +8,8 @@ class ConsolidatedFlow(Base):
     __tablename__ = "consolidated_flows"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    ip_src = Column(String, nullable=False)
-    ip_dst = Column(String, nullable=False)
+    ip_src = Column(INET, nullable=False) # Utilisation du type natif INET de PostgreSQL
+    ip_dst = Column(INET, nullable=False)
     port_dst = Column(Integer, nullable=False)
     protocol = Column(String(10), nullable=False)
 

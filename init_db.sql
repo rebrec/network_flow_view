@@ -1,8 +1,5 @@
 -- Initial Database Schema for NetVis V1
 
--- Extension pour le support CIDR avancé et performance (optionnelle)
--- CREATE EXTENSION IF NOT EXISTS btree_gist;
-
 -- 1. Réseau et Topologie
 CREATE TABLE IF NOT EXISTS network_topology (
     id SERIAL PRIMARY KEY,
@@ -48,7 +45,11 @@ CREATE TABLE IF NOT EXISTS consolidated_flows (
     last_seen TIMESTAMP WITH TIME ZONE NOT NULL,
     total_count BIGINT DEFAULT 1,
 
-    -- Cache de zone pour accélerer les requêtes (calculé lors de l'insertion)
+    -- Métriques sommables (doivent matcher le modèle SQLAlchemy)
+    bytes BIGINT DEFAULT 0,
+    packets BIGINT DEFAULT 0,
+
+    -- Cache de zone pour accélerer les requêtes
     src_zone_id INTEGER REFERENCES network_topology(id),
     dst_zone_id INTEGER REFERENCES network_topology(id),
 
@@ -59,16 +60,9 @@ CREATE TABLE IF NOT EXISTS consolidated_flows (
 CREATE TABLE IF NOT EXISTS saved_queries (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    query_string TEXT NOT NULL, -- NVQL String
-    query_json JSONB, -- Version parsée
+    query_string TEXT NOT NULL,
+    query_json JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS exclusion_rules (
-    id SERIAL PRIMARY KEY,
-    pattern VARCHAR(255) NOT NULL, -- ex: "port:137", "ip:10.0.0.0/8"
-    reason TEXT,
-    is_active BOOLEAN DEFAULT TRUE
 );
 
 -- 6. Indexation pour Performance
@@ -77,11 +71,3 @@ CREATE INDEX idx_flow_ip_src ON consolidated_flows USING GIST (ip_src inet_ops);
 CREATE INDEX idx_flow_ip_dst ON consolidated_flows USING GIST (ip_dst inet_ops);
 CREATE INDEX idx_flow_port_dst ON consolidated_flows (port_dst);
 CREATE INDEX idx_flow_last_seen ON consolidated_flows (last_seen DESC);
-
--- 7. Vue Matérialisée pour les stats globales (Top 100 Flows)
-CREATE MATERIALIZED VIEW mv_top_flows AS
-SELECT * FROM consolidated_flows
-ORDER BY total_count DESC
-LIMIT 100;
-
-CREATE INDEX idx_mv_top_flows_count ON mv_top_flows (total_count DESC);
