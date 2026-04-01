@@ -10,13 +10,7 @@ NetVis est un outil d'observabilité réseau conçu pour offrir une vision conso
 
 ### Lancer l'infrastructure (PostgreSQL, Redis, API, Worker)
 ```bash
-docker compose build \
-  --build-arg HTTP_PROXY \
-  --build-arg HTTPS_PROXY \
-  --build-arg NO_PROXY \
-  --build-arg http_proxy \
-  --build-arg https_proxy \
-  --build-arg no_proxy
+docker-compose up --build
 ```
 L'API sera disponible sur `http://localhost:8000/health`.
 
@@ -37,25 +31,74 @@ Le projet suit une approche **TDD**. Pour lancer les tests unitaires du backend 
    PYTHONPATH=. pytest tests/
    ```
 
-## 📂 Structure du Projet
+## ⚙️ Configuration des équipements (Ingestion)
 
+### Cisco Nexus 9000 (NetFlow/IPFIX)
+Configurez l'exportation des flux vers l'IP de votre serveur NetVis (UDP/9995) :
+```text
+feature netflow
+
+flow exporter NETVIS_EXPORTER
+  destination <IP_SERVEUR_NETVIS>
+  transport udp 9995
+  source <INTERFACE_SOURCE>
+  version 9
+
+flow record NETVIS_RECORD
+  match ipv4 source address
+  match ipv4 destination address
+  match transport destination-port
+  match ipv4 protocol
+  collect counter bytes
+  collect counter packets
+  collect timestamp sys-uptime first
+  collect timestamp sys-uptime last
+
+flow monitor NETVIS_MONITOR
+  record NETVIS_RECORD
+  exporter NETVIS_EXPORTER
+
+interface <VLAN_OU_INTERFACE_A_SURVEILLER>
+  ip flow monitor NETVIS_MONITOR input
+```
+
+### F5 AFM/LTM (HSL / IPFIX)
+1. **Pool :** Créez un pool contenant l'IP du serveur NetVis sur le port UDP 9995.
+2. **Log Destination :** Créez une destination de type `IPFIX` pointant vers ce pool.
+3. **Log Publisher :** Créez un publisher incluant cette destination.
+4. **AFM Policy :** Dans votre Network Firewall Policy, activez le logging et sélectionnez ce publisher.
+5. **LTM (Optionnel) :** Utilisez un iRule pour envoyer les événements de connexion au publisher si AFM n'est pas utilisé.
+
+## 🖥️ Guide d'utilisation de la GUI (V1)
+
+### 1. Recherche et Filtrage (Explorateur)
+- Utilisez la barre de recherche en haut pour filtrer les flux via le **NVQL**.
+  - `src:10.1.1.1` : Voir tout ce qui sort de cette IP.
+  - `port:443 and proto:tcp` : Voir le trafic HTTPS.
+  - `dst.zone:DMZ` : Voir le trafic entrant en DMZ.
+- Les résultats s'affichent sous forme de tableau consolidé (First Seen, Last Seen, Count).
+
+### 2. Cartographie (Graph View)
+- Cliquez sur l'onglet **"Graph"**.
+- Sélectionnez le mode de regroupement : **Host**, **Subnet** ou **Zone**.
+- Les liens entre les noeuds représentent les flux. L'épaisseur du trait est proportionnelle au nombre d'observations (`total_count`).
+- Survoler un lien pour voir le détail des ports utilisés.
+
+### 3. Gestion des Alias (Administration)
+- Allez dans **"Settings" > "Aliases"**.
+- Importez votre fichier CSV issu du F5 ou ajoutez manuellement des noms d'hôtes pour enrichir la vue (ex: `10.1.1.10` -> `DB_PROD_01`).
+
+### 4. Exports
+- Utilisez le bouton **"Export CSV"** sur n'importe quelle vue filtrée pour récupérer les données consolidées.
+
+## 📂 Structure du Projet
 - `PROPOSAL.md` : Document d'architecture détaillé (18 points).
 - `architecture.mermaid` : Diagramme logique des flux de données.
-- `init_db.sql` : Schéma PostgreSQL initial (types `inet`, indexation GIST).
-- `api_contracts.json` : Contrats d'API pour la recherche et les graphes.
-- `backend/` : Code Python (FastAPI & Workers).
-    - `app/services/flow_consolidator.py` : Logique d'UPSERT pour la consolidation.
-    - `app/services/nvql_parser.py` : Parser de requêtes NetVis (NVQL).
-    - `workers/flow_worker.py` : Worker asynchrone consommant Redis.
+- `init_db.sql` : Schéma PostgreSQL initial.
+- `backend/` : FastAPI & Workers de consolidation.
 
 ## 🔍 NetVis Query Language (NVQL)
-
-Exemples de requêtes supportées par le parser V1 :
+Exemples :
 - `src:10.1.1.1 and port:443`
 - `dst.zone:DMZ and not proto:UDP`
 - `tag:PROD`
-
-## 🛠️ Prochaines étapes (Roadmap V1)
-1. Implémenter le collecteur IPFIX réel (Scapy/Pyshark).
-2. Développer le Frontend React/Vue avec Cytoscape.js.
-3. Intégrer l'import automatique des alias depuis F5.
