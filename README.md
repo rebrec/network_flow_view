@@ -14,22 +14,27 @@ docker-compose up --build
 ```
 L'API sera disponible sur `http://localhost:8000/health`.
 
-## 🧪 Tests
+## 🧪 Tests & Simulation de données
 
-Le projet suit une approche **TDD**. Pour lancer les tests unitaires du backend :
+Le projet suit une approche **TDD**.
 
-1. Créer un environnement virtuel :
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+### 1. Tests Unitaires
+Pour lancer les tests unitaires du backend :
+```bash
+cd backend
+PYTHONPATH=. pytest tests/
+```
 
-2. Exécuter pytest :
-   ```bash
-   PYTHONPATH=. pytest tests/
-   ```
+### 2. Simulation de trafic (Nexus/F5)
+Pour tester l'ingestion et la consolidation avec de fausses données réalistes :
+```bash
+cd backend
+# Installer redis-py si besoin
+pip install redis
+# Lancer le script de génération
+python scripts/generate_test_data.py
+```
+Le script injectera 100 flux dans Redis, qui seront immédiatement traités par le `worker-flow` et consolidés dans la base de données.
 
 ## ⚙️ Configuration des équipements (Ingestion)
 
@@ -67,7 +72,6 @@ interface <VLAN_OU_INTERFACE_A_SURVEILLER>
 2. **Log Destination :** Créez une destination de type `IPFIX` pointant vers ce pool.
 3. **Log Publisher :** Créez un publisher incluant cette destination.
 4. **AFM Policy :** Dans votre Network Firewall Policy, activez le logging et sélectionnez ce publisher.
-5. **LTM (Optionnel) :** Utilisez un iRule pour envoyer les événements de connexion au publisher si AFM n'est pas utilisé.
 
 ## 🖥️ Guide d'utilisation de la GUI (V1)
 
@@ -75,30 +79,24 @@ interface <VLAN_OU_INTERFACE_A_SURVEILLER>
 - Utilisez la barre de recherche en haut pour filtrer les flux via le **NVQL**.
   - `src:10.1.1.1` : Voir tout ce qui sort de cette IP.
   - `port:443 and proto:tcp` : Voir le trafic HTTPS.
-  - `dst.zone:DMZ` : Voir le trafic entrant en DMZ.
 - Les résultats s'affichent sous forme de tableau consolidé (First Seen, Last Seen, Count).
 
 ### 2. Cartographie (Graph View)
 - Cliquez sur l'onglet **"Graph"**.
 - Sélectionnez le mode de regroupement : **Host**, **Subnet** ou **Zone**.
 - Les liens entre les noeuds représentent les flux. L'épaisseur du trait est proportionnelle au nombre d'observations (`total_count`).
-- Survoler un lien pour voir le détail des ports utilisés.
 
 ### 3. Gestion des Alias (Administration)
 - Allez dans **"Settings" > "Aliases"**.
 - Importez votre fichier CSV issu du F5 ou ajoutez manuellement des noms d'hôtes pour enrichir la vue (ex: `10.1.1.10` -> `DB_PROD_01`).
 
-### 4. Exports
-- Utilisez le bouton **"Export CSV"** sur n'importe quelle vue filtrée pour récupérer les données consolidées.
-
 ## 📂 Structure du Projet
-- `PROPOSAL.md` : Document d'architecture détaillé (18 points).
-- `architecture.mermaid` : Diagramme logique des flux de données.
-- `init_db.sql` : Schéma PostgreSQL initial.
-- `backend/` : FastAPI & Workers de consolidation.
+- `PROPOSAL.md` : Architecture détaillée.
+- `init_db.sql` : Schéma PostgreSQL.
+- `backend/scripts/generate_test_data.py` : Script de génération de données de test.
+- `backend/workers/flow_worker.py` : Moteur de consolidation asynchrone.
 
 ## 🔍 NetVis Query Language (NVQL)
-Exemples :
 - `src:10.1.1.1 and port:443`
 - `dst.zone:DMZ and not proto:UDP`
 - `tag:PROD`

@@ -26,8 +26,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://netvis:netvis_password@db:5432/netvis
+      DATABASE_URL: postgresql+asyncpg://netvis:netvis_password@db:5432/netvis
       REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app
     depends_on:
       - db
       - redis
@@ -37,10 +38,23 @@ services:
     container_name: netvis-worker-flow
     command: python workers/flow_worker.py
     environment:
-      DATABASE_URL: postgresql://netvis:netvis_password@db:5432/netvis
+      DATABASE_URL: postgresql+asyncpg://netvis:netvis_password@db:5432/netvis
       REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app
     depends_on:
       - db
+      - redis
+
+  collector-udp:
+    build: ./backend
+    container_name: netvis-collector-udp
+    command: python workers/collector.py
+    ports:
+      - "9995:9995/udp"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app
+    depends_on:
       - redis
 
 volumes:

@@ -16,6 +16,14 @@ class ConsolidatedFlow(Base):
     last_seen = Column(DateTime(timezone=True), nullable=False)
     total_count = Column(BigInteger, default=1)
 
+    # Nouvelles métriques sommables
+    bytes = Column(BigInteger, default=0)
+    packets = Column(BigInteger, default=0)
+
+    # Cache de zone (calculé lors du processing)
+    src_zone_id = Column(Integer, nullable=True)
+    dst_zone_id = Column(Integer, nullable=True)
+
     __table_args__ = (
         UniqueConstraint('ip_src', 'ip_dst', 'port_dst', 'protocol', name='uq_flow_key'),
     )
