@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from aioredis import from_url
+from redis.asyncio import from_url
 from app.core.config import settings
 
 logging.basicConfig(level=logging.INFO)
