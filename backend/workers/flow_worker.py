@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from aioredis import from_url
+from redis.asyncio import from_url
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
