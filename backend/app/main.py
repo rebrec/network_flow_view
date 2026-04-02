@@ -1,4 +1,7 @@
+import os
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
@@ -60,7 +63,7 @@ async def search_flows(query_req: dict, db: AsyncSession = Depends(get_db)):
 @app.get("/api/v1/stats/summary")
 async def get_summary(db: AsyncSession = Depends(get_db)):
     # Simuler des stats pour la V1 (top talkers)
-    stmt = select(ConsolidatedFlow).order_by(ConsolidatedFlow.total_count.desc()).limit(5)
+    stmt = select(ConsolidatedFlow).order_by(ConsolidatedFlow.total_count.desc()).limit(10)
     result = await db.execute(stmt)
     top_flows = result.scalars().all()
 
@@ -68,3 +71,64 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
         "active_flows": len(top_flows),
         "top_talkers": top_flows
     }
+
+@app.get("/api/v1/graphs/dependency")
+async def get_dependency_graph(db: AsyncSession = Depends(get_db)):
+    """
+    Génère les données au format Cytoscape pour le graphe de dépendances.
+    """
+    stmt = select(ConsolidatedFlow).order_by(ConsolidatedFlow.last_seen.desc()).limit(200)
+    result = await db.execute(stmt)
+    flows = result.scalars().all()
+
+    nodes = set()
+    elements = []
+
+    for flow in flows:
+        # Ajout des noeuds source et destination
+        if flow.ip_src not in nodes:
+            elements.append({"data": {"id": flow.ip_src, "label": flow.ip_src}})
+            nodes.add(flow.ip_src)
+
+        if flow.ip_dst not in nodes:
+            elements.append({"data": {"id": flow.ip_dst, "label": flow.ip_dst}})
+            nodes.add(flow.ip_dst)
+
+        # Ajout de l'arête (flux)
+        elements.append({
+            "data": {
+                "id": f"{flow.ip_src}-{flow.ip_dst}-{flow.port_dst}",
+                "source": flow.ip_src,
+                "target": flow.ip_dst,
+                "port": str(flow.port_dst)
+            }
+        })
+
+    return elements
+
+# Serve static files and SPA
+static_path = os.path.join(os.path.dirname(__file__), "..", "static")
+
+if os.path.exists(static_path):
+    # Mount the entire static directory to serve assets and other files safely
+    app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+    # Explicitly serve index.html for common root/SPA paths
+    @app.get("/")
+    @app.get("/explorer")
+    @app.get("/topology")
+    async def serve_index():
+        return FileResponse(os.path.join(static_path, "index.html"))
+
+    # Optional: Catch-all for other non-API routes to support SPA routing
+    @app.get("/{full_path:path}")
+    async def catch_all(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
+
+        # Check if the file exists in static directory first
+        potential_file = os.path.join(static_path, full_path)
+        if os.path.isfile(potential_file):
+             return FileResponse(potential_file)
+
+        return FileResponse(os.path.join(static_path, "index.html"))

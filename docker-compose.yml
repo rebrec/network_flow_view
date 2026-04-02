@@ -19,7 +19,9 @@ services:
       - "6379:6379"
 
   api:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: netvis-api
     ports:
       - "8000:8000"
@@ -32,7 +34,9 @@ services:
       - redis
 
   worker-flow:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: netvis-worker-flow
     command: python workers/flow_worker.py
     environment:
@@ -44,7 +48,9 @@ services:
       - redis
 
   collector-udp:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: netvis-collector-udp
     command: python workers/collector.py
     ports:
