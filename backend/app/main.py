@@ -1,10 +1,11 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
+from sqlalchemy import select, text
 from app.core.config import settings
 from app.models.flow import ConsolidatedFlow
 from app.services.nvql_parser import parse_nvql
@@ -13,7 +14,28 @@ from app.services.nvql_parser import parse_nvql
 engine = create_async_engine(settings.DATABASE_URL)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-app = FastAPI(title="NetVis API V1", description="Observabilité Réseau On-Prem")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure schema is up to date (V1 schema update for bytes/packets)
+    async with engine.begin() as conn:
+        try:
+            # Check if bytes column exists
+            result = await conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name='consolidated_flows' AND column_name='bytes'"
+            ))
+            if not result.fetchone():
+                await conn.execute(text("ALTER TABLE consolidated_flows ADD COLUMN bytes BIGINT DEFAULT 0"))
+                await conn.execute(text("ALTER TABLE consolidated_flows ADD COLUMN packets BIGINT DEFAULT 0"))
+        except Exception as e:
+            print(f"Startup schema check error (ignoring if DB not ready): {e}")
+    yield
+
+app = FastAPI(
+    title="NetVis API V1",
+    description="Observabilité Réseau On-Prem",
+    lifespan=lifespan
+)
 
 async def get_db():
     async with AsyncSessionLocal() as session:
